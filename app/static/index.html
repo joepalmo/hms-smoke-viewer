@@ -7,19 +7,8 @@
     <title>NOAA HMS Viewer</title>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/static/styles.css">
     <!-- <script src="main.js"></script> Link to your JavaScript file -->
-    <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        #datepickercontainer {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: white;
-            padding: 10px;
-            z-index: 1;
-        }
-    </style>
 </head>
 <body>
 
@@ -31,14 +20,26 @@
     <button id="play-btn">Play</button>
 </div>
 
+<div id="legend">
+    <h4>Legend</h4>
+    <div><span class="legend-circle fire"></span> Fire Hotspot</div>
+    <div><span class="legend-color smoke-light"></span> Light Smoke</div>
+    <div><span class="legend-color smoke-medium"></span> Medium Smoke</div>
+    <div><span class="legend-color smoke-heavy"></span> Heavy Smoke</div>
+</div>
+
 <script>
     mapboxgl.accessToken = 'pk.eyJ1Ijoiam9lcGFsbW8iLCJhIjoiY2xubWh1cDJ0MW5hMDJtbW5tZDBtc2Y2bSJ9.TdIuKLGiMAZmZNpbSRte2w';
 
     // Get today's date in YYYY-MM-DD format
     var today = new Date().toISOString().split('T')[0];
+    // Get yesterday's date in YYYY-MM-DD format
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    var yesterdayFormatted = yesterday.toISOString().split('T')[0];
     // Set the value of the date picker to today's date
-    document.getElementById('datepicker').value = today;
-    document.getElementById('datepicker').max = today;
+    document.getElementById('datepicker').value = yesterdayFormatted;
+    document.getElementById('datepicker').max = yesterdayFormatted;
 
     var map = new mapboxgl.Map({
         container: 'map',
