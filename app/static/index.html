@@ -1,0 +1,233 @@
+<!-- static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOAA HMS Viewer</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet"/>
+    <!-- <script src="main.js"></script> Link to your JavaScript file -->
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #datepickercontainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: white;
+            padding: 10px;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<!-- Date picker container -->
+<div id="datepickercontainer">
+    <label for="datepicker">Select Date:</label>
+    <input type="date" id="datepicker" name="date" value="2018-07-22" min="2010-01-01" max="2024-09-30">
+    <button id="play-btn">Play</button>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoiam9lcGFsbW8iLCJhIjoiY2xubWh1cDJ0MW5hMDJtbW5tZDBtc2Y2bSJ9.TdIuKLGiMAZmZNpbSRte2w';
+
+    // Get today's date in YYYY-MM-DD format
+    var today = new Date().toISOString().split('T')[0];
+    // Set the value of the date picker to today's date
+    document.getElementById('datepicker').value = today;
+    document.getElementById('datepicker').max = today;
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: "mapbox://styles/mapbox/light-v10",
+        center: [-98.5, 39.5],
+        zoom: 3,
+        projection: 'globe',
+        // projection: 'equirectangular',
+    });
+
+    let cycling = false;
+    let intervalId = null;
+
+    // Optional: configure atmosphere settings for the globe
+    map.on('style.load', () => {
+        map.setFog({ // Set the atmosphere around the globe
+            'color': 'rgba(135, 206, 235, 0.5)', // Color of the fog (sky-like)
+            'high-color': 'rgba(0, 0, 0, 0.4)', // Upper atmosphere
+            'horizon-blend': 0.02 // Horizon blending
+        });
+        fetchDataForDate(document.getElementById('datepicker').value);
+    });
+
+    // Fetch and update map data when a date is selected
+    document.getElementById('datepicker').addEventListener('change', function() {
+        stopCycling(); // Stop cycling if user changes the date manually
+        var selectedDate = this.value;
+        fetchDataForDate(selectedDate);
+    });
+
+    function fetchDataForDate(date) {
+    // Make a fetch call to your FastAPI backend with the selected date as a parameter
+    console.log('Fetching data for date:', date);
+
+    // Load fire data
+    console.log(`/data/fire?date=${date}`);
+    fetch(`/data/fire?date=${date}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (typeof data === 'string') {
+            // If data is a string, parse it as JSON
+            data = JSON.parse(data);
+        }
+        // Check if the source 'fireData' already exists, and update if it does
+        if (map.getSource('fireData')) {
+                map.getSource('fireData').setData(data); // Update the data
+        } else {
+        map.addSource('fireData', {
+            'type': 'geojson',
+            'data': data
+        });
+
+        map.addLayer({
+            'id': 'fire-layer',
+            'type': 'circle',  // Change this from 'fill' to 'circle'
+            'source': 'fireData',
+            'paint': {
+                'circle-radius': {
+                    'base': 2,
+                    'stops': [
+                        [3, 1],    // Small at lower zoom
+                        [5, 4],    // Small at lower zoom
+                        [7, 10],   // Bigger at medium zoom
+                        [9, 15],  // Even bigger at higher zoom
+                        [11, 20]   // Largest at highest zoom
+                    ]
+                },
+                'circle-color': '#FF0000',  // Red color for the points
+                'circle-opacity': 0.8
+            }
+        });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading fire data:', error);
+    });
+
+    // Define color mapping based on Density
+    const densityColors = [
+        'match',  // Expression type
+        ['get', 'Density'],  // Property to match (Density)
+        // 'Light', '#E7D516',  // Green for "Light"
+        // 'Moderate', '#DAA520',  // Yellow for "Moderate"
+        // 'Heavy', '#964B00',  // Red for "Heavy"
+        'Light', '#00FF00',  // Green for "Light"
+        'Medium', '#FFFF00',  // Yellow for "Moderate"
+        'Heavy', '#FF0000',  // Red for "Heavy"
+        '#000000'  // Default color (Black) if no match
+    ];
+
+
+    // Load smoke data
+    fetch(`/data/smoke?date=${date}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (typeof data === 'string') {
+                    // If data is a string, parse it as JSON
+                    data = JSON.parse(data);
+                }
+        // Check if the source 'smokeData' already exists, and update if it does
+        if (map.getSource('smokeData')) {
+            map.getSource('smokeData').setData(data); // Update the data
+        } else {
+        map.addSource('smokeData', {
+            'type': 'geojson',
+            'data': data
+        });
+        
+        // fill layer
+        map.addLayer({
+            'id': 'smoke-layer',
+            'type': 'fill',
+            'source': 'smokeData',
+            'paint': {
+                'fill-color': densityColors,
+                'fill-opacity': 0.2,
+            }
+        });
+
+        // line layer
+        // Add line layer (for the outline of the polygons)
+        map.addLayer({
+            'id': 'smoke-layer-outline',
+            'type': 'line',
+            'source': 'smokeData',
+            'paint': {
+                'line-color': '#FFFFFF',  // White outline (stroke)
+                'line-width': 0.75,  // Set stroke width
+                'line-opacity': 0.75  // Set stroke opacity
+            }
+        });
+        }
+    })
+    
+    .catch(error => {
+        console.error('Error loading smoke data:', error);
+    });
+    };  
+
+    // Function to start cycling through dates
+    function startCycling() {
+        if (cycling) return;
+
+        cycling = true;
+        let dateInput = document.getElementById('datepicker');
+        let interval = 2500 || 3000;
+
+        let currentDate = new Date(dateInput.value);
+        intervalId = setInterval(() => {
+            currentDate.setDate(currentDate.getDate() + 1); // Increment the day by 1
+            let formattedDate = currentDate.toISOString().slice(0, 10)//.replace(/-/g, '');
+            fetchDataForDate(formattedDate);
+
+            dateInput.valueAsDate = currentDate; // Update the input field to show current date
+        }, interval);
+    }
+
+    // Function to stop cycling
+    function stopCycling() {
+        if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+            cycling = false;
+        }
+    }
+
+    // Event listeners
+        document.getElementById('play-btn').addEventListener('click', function () {
+        if (cycling) {
+            stopCycling();
+            this.textContent = 'Play';
+        } else {
+            startCycling();
+            this.textContent = 'Pause';
+        }
+    });
+
+
+</script>
+
+</body>
+</html>

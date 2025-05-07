@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "hms-smoke-viewer"
+version = "0.1.0"
+description = "web app to view NOAA HMS smoke and fire data"
+authors = ["joepalmo <joepalmo7@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.115.3"
+requests = "^2.32.3"
+geopandas = "^1.0.1"
+fiona = "^1.10.1"
+shapely = "^2.0.6"
+uvicorn = "^0.32.0"
+google-cloud-storage = "^2.18.2"
+gcsfs = "^2024.10.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

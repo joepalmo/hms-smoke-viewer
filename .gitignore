@@ -1,0 +1,12 @@
+# ignore ALL notebook files
+*.ipynb
+# ignore ALL checkpoint files
+*.ipynb_checkpoints
+# ignore credentials file
+credentials.json
+#ignore test data
+/fire
+/smoke
+# ignore environment files
+# .env
+# .sh
