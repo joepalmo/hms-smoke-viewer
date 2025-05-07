@@ -37,5 +37,4 @@ jobs:
           service: hms-smoke-viewer
           image: us-east1-docker.pkg.dev/proven-dream-439521-t5/smoke-viewer-repo/hms-smoke-viewer
           region: us-east1
-          service_account: web-application@proven-dream-439521-t5.iam.gserviceaccount.com
         
