@@ -8,5 +8,5 @@ credentials.json
 /fire
 /smoke
 # ignore environment files
-# .env
-# .sh
+.env
+.sh
